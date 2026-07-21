@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+env:
+  DATABASE_URL: postgresql://snaplink:snaplink@localhost:5432/snaplink
+  AUTH_SECRET: ci-test-secret-not-for-production
+  E2E_TESTING: 'true'
+  NEXT_PUBLIC_APP_URL: http://localhost:3000
+  STRIPE_SECRET_KEY: sk_test_placeholder
+  STRIPE_WEBHOOK_SECRET: whsec_placeholder
+  STRIPE_PRICE_ID_PRO: price_placeholder
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: snaplink
+          POSTGRES_PASSWORD: snaplink
+          POSTGRES_DB: snaplink
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma db push
+      - run: npm run db:seed
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run start & npx wait-on http://localhost:3000
+      - run: npm run test:e2e
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  # Vercel tự build + deploy preview cho mỗi PR và deploy production khi merge main
+  # thông qua GitHub integration có sẵn — không cần job riêng ở đây.
+  # Nếu tự host bằng Docker thay vì Vercel, thêm job "deploy" build & push image,
+  # ví dụ: docker build -t registry/snaplink:${{ github.sha }} . && docker push ...

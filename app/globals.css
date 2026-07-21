@@ -1,0 +1,37 @@
+@import 'tailwindcss';
+
+/*
+  Bảng màu Snaplink — xanh navy đậm làm nền tối/chữ, xanh chàm-tím (#5B5FEF)
+  làm accent chính cho hành động, xanh lá làm tín hiệu "đã kích hoạt/thành công".
+  Tránh cặp màu mặc định kem+terracotta hay near-black+neon thường thấy.
+*/
+:root {
+  --color-ink: #0e1424;
+  --color-surface: #f7f8fb;
+  --color-surface-raised: #ffffff;
+  --color-accent: #5b5fef;
+  --color-accent-hover: #4548d1;
+  --color-success: #16a34a;
+  --color-border: #e3e6ef;
+  --font-display: var(--font-sora);
+  --font-body: var(--font-inter);
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display), var(--font-body), system-ui, sans-serif;
+}
+
+/* Tôn trọng prefers-reduced-motion cho người dùng nhạy cảm với chuyển động */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

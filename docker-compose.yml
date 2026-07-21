@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: snaplink
+      POSTGRES_PASSWORD: snaplink
+      POSTGRES_DB: snaplink
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U snaplink']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env # copy từ .env.example, điền giá trị thật trước khi chạy
+    environment:
+      DATABASE_URL: postgresql://snaplink:snaplink@db:5432/snaplink
+
+volumes:
+  db_data:
