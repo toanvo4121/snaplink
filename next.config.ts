@@ -1,32 +1,61 @@
-import type { NextConfig } from 'next';
+import type { NextConfig } from "next";
+import path from "node:path";
+
+const isDev = process.env.NODE_ENV === "development";
+
+const csp = `
+default-src 'self';
+script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval'" : ""} https://js.stripe.com;
+frame-src https://js.stripe.com;
+img-src 'self' https: data:;
+style-src 'self' 'unsafe-inline';
+connect-src 'self' https://api.stripe.com ${isDev ? "ws: wss:" : ""};
+`
+  .replace(/\s+/g, " ")
+  .trim();
 
 const nextConfig: NextConfig = {
-  // Bật mô hình caching mới của Next.js 16: mặc định dynamic, cache tường minh qua "use cache"
   cacheComponents: true,
 
-  // Build ra bundle standalone gọn nhẹ để đóng Docker image (xem Dockerfile)
-  output: 'standalone',
+  output: "standalone",
+
+  turbopack: {
+    root: path.resolve(__dirname),
+  },
 
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: 'lh3.googleusercontent.com' }, // avatar Google OAuth
-      { protocol: 'https', hostname: 'avatars.githubusercontent.com' }, // avatar GitHub OAuth
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+      },
+      {
+        protocol: "https",
+        hostname: "avatars.githubusercontent.com",
+      },
     ],
   },
 
   async headers() {
     return [
       {
-        // Security headers cơ bản áp dụng toàn site (xem mục 8 trong tài liệu security)
-        source: '/:path*',
+        source: "/:path*",
         headers: [
-          { key: 'X-Frame-Options', value: 'DENY' },
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           {
-            key: 'Content-Security-Policy',
-            value:
-              "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com; frame-src https://js.stripe.com; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.stripe.com;",
+            key: "X-Frame-Options",
+            value: "DENY",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "Content-Security-Policy",
+            value: csp,
           },
         ],
       },

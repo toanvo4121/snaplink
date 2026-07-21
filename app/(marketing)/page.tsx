@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { unstable_cacheLife as cacheLife } from 'next/cache';
+import { cacheLife as cacheLife } from 'next/cache';
 
 export const metadata: Metadata = {
   title: 'Rút gọn link, đo lường click theo thời gian thực',
