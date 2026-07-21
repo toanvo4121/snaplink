@@ -1,7 +1,7 @@
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { stripe } from '@/lib/stripe';
+import { stripe, getCurrentPeriodEnd, getInvoiceSubscriptionId } from '@/lib/stripe';
 import { db } from '@/lib/db';
 
 /**
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
         data: {
           stripeSubscriptionId: subscription.id,
           stripePriceId: subscription.items.data[0]?.price.id,
-          stripeCurrentPeriodEnd: new Date(subscription.items.data[0]!.current_period_end * 1000),
+          stripeCurrentPeriodEnd: getCurrentPeriodEnd(subscription),
           planStatus: 'ACTIVE',
         },
       });
@@ -44,13 +44,14 @@ export async function POST(req: Request) {
 
     case 'invoice.payment_succeeded': {
       const invoice = event.data.object as Stripe.Invoice;
-      if (invoice.subscription) {
-        const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+      const subscriptionId = getInvoiceSubscriptionId(invoice);
+      if (subscriptionId) {
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
         await db.user.update({
           where: { stripeCustomerId: invoice.customer as string },
           data: {
             planStatus: 'ACTIVE',
-            stripeCurrentPeriodEnd: new Date(subscription.items.data[0]!.current_period_end * 1000),
+            stripeCurrentPeriodEnd: getCurrentPeriodEnd(subscription),
           },
         });
       }
